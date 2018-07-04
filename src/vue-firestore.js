@@ -27,10 +27,14 @@ function defineReactive (vm, key, val) {
  */
 function collections ({ vm, key, source, resolve, reject }) {
   vm.$firestore[key] = source
-  let container = []
+  let container = null
   defineReactive(vm, key, container)
   source.onSnapshot((doc) => {
     doc.docChanges().forEach(snapshot => {
+      if (container === null) {
+        container = []
+        defineReactive(vm, key, container)
+      }
       switch (snapshot.type) {
         case 'added':
           container.splice(snapshot.newIndex, 0, normalize(snapshot))
@@ -65,7 +69,7 @@ function collections ({ vm, key, source, resolve, reject }) {
  */
 function documents ({ vm, key, source, resolve, reject }) {
   vm.$firestore[key] = source
-  let container = []
+  let container = null
   defineReactive(vm, key, container)
   source.onSnapshot((doc) => {
     if (doc.exists) {
@@ -73,7 +77,7 @@ function documents ({ vm, key, source, resolve, reject }) {
       vm[key] = container
     } else {
       delete vm.$firestore[key]
-      reject(new Error('This document is not exist or permission denied'))
+      reject(new Error('This document is inaccessible'))
     }
     resolve(vm[key])
   }, (error) => {
